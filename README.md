@@ -16,4 +16,8 @@ uv run --project pipeline pytest pipeline/tests -q
 npm --workspace apps/web run build
 ```
 
-Bu kaynak anlık görüntüsü için henüz bir açık kaynak lisansı belirlenmemiştir. Marka, logolar, üçüncü taraf fontlar ve görseller ayrı haklara tabi olabilir; bunların varlığı yeniden kullanım yetkisi vermez. Font lisansları ilgili dosyalarla birlikte sunulmaktadır.
+Bu depo için henüz bir açık kaynak lisansı belirlenmemiştir. Marka, logolar, üçüncü taraf fontlar ve görseller ayrı haklara tabi olabilir; bunların varlığı yeniden kullanım yetkisi vermez. Font lisansları ilgili dosyalarla birlikte sunulmaktadır.
+
+## Dağıtım ve kontroller
+
+`main` dalındaki değişiklikler GitHub Actions ile doğrulanır ve Coolify yapılandırmasındaki public kaynak üzerinden dağıtılır. Uygulama kapsayıcısı, dağıtım sırasında bekleyen veritabanı göçlerini ayrı bir göç bağlantısıyla uygular. Üretim sırları, veri tabanı kayıtları ve özel yedekler depoya eklenmez.
