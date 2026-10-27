@@ -1,0 +1,24 @@
+{
+  "name": "yarenler",
+  "private": true,
+  "description": "Yarenler: akademisyenleri araştırma alanlarına göre eşleştiren web sitesi ve iOS uygulaması",
+  "license": "UNLICENSED",
+  "workspaces": [
+    "apps/web",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "setup": "npm install && uv sync --project pipeline",
+    "mock": "prism mock contracts/openapi.yaml",
+    "lint:openapi": "redocly lint contracts/openapi.yaml",
+    "check:copy": "python3 scripts/check_copy.py",
+    "test:pipeline": "uv run --project pipeline pytest pipeline/tests -q"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.60.0",
+    "@stoplight/prism-cli": "5.16.0"
+  }
+}

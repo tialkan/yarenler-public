@@ -1,0 +1,12 @@
+# Yarenler
+
+> AYBÜ akademisyenlerini ve çalışma alanlarını keşfetmeye yardımcı olan bağımsız araştırma platformu.
+
+- Profil bilgileri AYBÜ AVESİS'in herkese açık kayıtlarından alınır.
+- Profillerde ad, unvan, birim ve araştırma alanları bulunur.
+- İlk sürümde Halka, ortak alan etiketlerinin Jaccard benzerliğini gösterir. Yüzde işbirliği olasılığı veya kalite puanı değildir.
+- Yöntem: /tr/hakkinda
+- Araştırmacılar: /tr/kesfet
+- İşbirliği duyuruları: /tr/duyurular (RSS: /tr/duyurular/rss.xml)
+- Site haritası: /sitemap.xml
+- Veri tarihi: 22 Ekim 2026

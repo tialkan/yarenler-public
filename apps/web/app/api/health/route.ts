@@ -1,0 +1,10 @@
+import {db} from '@/server/db';
+export const dynamic='force-dynamic';
+/**
+ * Readiness: the database answers and already has the columns this release reads (0009 person.kaynak and
+ * kaldirma_tarihi, 0008 research_area.kanonik_id, 0012 research_area.kaynak, 0013 person.kaynak_tarihi, person_publication and veri_aktarimi, 0014 person.yonetici_gizledi, 0016 announcement.anahtar_kelimeler). An older schema answers 503, so when start-up migrations
+ * were skipped (no MIGRATION_DATABASE_URL) Coolify keeps the previous container instead of a broken one.
+ * Migration 0028/0029 views are parsed with WHERE false, checking their shape/grants without scanning evidence.
+ */
+const SCHEMA_PROBE=`SELECT (SELECT source_id FROM trdizin_publication WHERE false) trdizin_source,(SELECT basis FROM person_field_publication WHERE false) field_evidence,(SELECT duzey FROM person_publication_scope WHERE false) field_scope,(SELECT topic_id FROM publication_topic_path WHERE false) topic_path,(SELECT 1 FROM announcement_skill LIMIT 1) skills,(SELECT 1 FROM person_publication_effective LIMIT 1) AS owner_publications,(SELECT revizyon_tarihi FROM announcement LIMIT 1) AS revision,yarenler_kurum_surumu() AS upload,yarenler_itiraz_surumu() AS itiraz_surumu,yarenler_duyuru_deneme_siniri() AS deneme_siniri,p.kaynak,p.kaldirma_tarihi,(SELECT a.kanonik_id FROM research_area a LIMIT 1) AS kanonik,(SELECT a.kaynak FROM research_area a LIMIT 1) AS alan_kaynak,p.kaynak_tarihi,(SELECT pp.sira FROM person_publication pp LIMIT 1) AS yayin,(SELECT v.bitis FROM veri_aktarimi v LIMIT 1) AS aktarim,p.yonetici_gizledi,(SELECT a.anahtar_kelimeler FROM announcement a LIMIT 1) AS duyuru_kavram FROM person p LIMIT 1`;
+export async function GET(){try{await db().query(SCHEMA_PROBE);return Response.json({durum:'ok',surum:'0.4.0',commit:process.env.SOURCE_COMMIT||'development'});}catch(error){const code=(error as {code?:string}).code;const outdated=code==='42703'||code==='42P01'||code==='42883';return Response.json(outdated?{kod:'sema_eski',mesaj:'Veritabanı şeması bu sürümden eski; göçler uygulanmalı.'}:{kod:'bagimlilik_hatasi',mesaj:'Veritabanı hazır değil.'},{status:503});}}

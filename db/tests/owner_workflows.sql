@@ -1,0 +1,68 @@
+BEGIN;
+DO $$
+DECLARE p uuid:=uuidv7();p2 uuid:=uuidv7();s uuid:=uuidv7();s2 uuid:=uuidv7();w uuid;d uuid;a uuid;b uuid;v uuid;j jsonb;blocked boolean;
+BEGIN
+ INSERT INTO person(id,kisa_kimlik,ad,soyad,gorunen_ad,orcid,sahiplenildi,sahiplenme_tarihi,kurum_beyan) VALUES(p,'ciowner91','Owner','One','Owner One','0000-0000-0000-1030',true,now(),'Test Üniversitesi'),(p2,'ciowner92','Owner','Two','Owner Two','0000-0000-0000-1130',true,now(),'Test Üniversitesi');
+ INSERT INTO orcid_session(id,person_id,orcid,gorunen_ad,belirtec_ozeti,bitis) VALUES(s,p,'0000-0000-0000-1030','Owner One',sha256(convert_to(s::text,'UTF8')),now()+interval '1 day'),(s2,p2,'0000-0000-0000-1130','Owner Two',sha256(convert_to(s2::text,'UTF8')),now()+interval '1 day');
+ w:=yarenler_yayin_ekle(s,'Güvenilir bilimsel veri ile eşleştirme',2026,'makale',NULL,'Test dergisi');
+ IF NOT EXISTS(SELECT 1 FROM person_publication_effective WHERE person_id=p AND publication_id=w) THEN RAISE EXCEPTION 'Owner work missing';END IF;
+ blocked:=false;BEGIN PERFORM yarenler_yayin_sec(s2,w,false);EXCEPTION WHEN SQLSTATE 'YA031' THEN blocked:=true;END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Another person removed a work';END IF;
+ DELETE FROM semantic_refresh_queue WHERE sahip_turu='person' AND sahip_id=p;
+ PERFORM yarenler_yayin_sec(s,w,false);
+ IF NOT EXISTS(SELECT 1 FROM semantic_refresh_queue WHERE sahip_turu='person' AND sahip_id=p AND neden='yayin_degisti') THEN RAISE EXCEPTION 'Owner change not queued atomically';END IF;
+ IF EXISTS(SELECT 1 FROM person_publication_effective WHERE person_id=p AND publication_id=w) THEN RAISE EXCEPTION 'Hidden owner work visible';END IF;
+ -- A later crawler still lists the work: the owner's removal remains authoritative.
+ INSERT INTO person_publication(person_id,publication_id,sira) VALUES(p,w,0);
+ IF EXISTS(SELECT 1 FROM person_publication_effective WHERE person_id=p AND publication_id=w) THEN RAISE EXCEPTION 'Import restored a removed work';END IF;
+ PERFORM yarenler_yayin_sec(s,w,true);
+ IF (SELECT count(*) FROM person_publication_effective WHERE person_id=p AND publication_id=w)<>1 THEN RAISE EXCEPTION 'Restored work duplicated';END IF;
+ d:=yarenler_duyuru_deneme_baslat(p);
+ INSERT INTO announcement(sahip_id,ham_metin,yayin_metni,sure_hafta,bitis) VALUES(p,'Akademik proje için ortak arıyorum.','Araştırma projesi için işbirliği çağrısı',4,now()+interval '4 weeks') RETURNING id INTO a;
+ PERFORM yarenler_duyuru_denetim_sonucu(d,p,'kabul',NULL,NULL,a,NULL,'test',NULL,NULL,7);
+ blocked:=false;BEGIN PERFORM yarenler_duyuru_deneme_baslat(p);EXCEPTION WHEN SQLSTATE 'YA023' THEN blocked:=true;END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Second initial announcement allowed';END IF;
+ blocked:=false;BEGIN PERFORM yarenler_duyuru_rezervasyon(p2,a);EXCEPTION WHEN SQLSTATE 'YA023' THEN blocked:=true;END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Another person revised announcement';END IF;
+ d:=yarenler_duyuru_rezervasyon(p,a);
+ PERFORM yarenler_duyuru_revize(d,p,'Kendi yazdığım revizyon olduğu gibi yayımlanmalı.','[]','{}');
+ PERFORM yarenler_duyuru_denetim_sonucu(d,p,'kabul',NULL,NULL,a,NULL,'test',NULL,NULL,7);
+ IF (SELECT yayin_metni FROM announcement WHERE id=a)<>'Kendi yazdığım revizyon olduğu gibi yayımlanmalı.' THEN RAISE EXCEPTION 'Revision not exact';END IF;
+ blocked:=false;BEGIN PERFORM yarenler_duyuru_rezervasyon(p,a);EXCEPTION WHEN SQLSTATE 'YA023' THEN blocked:=true;END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Second revision allowed';END IF;
+ d:=yarenler_duyuru_deneme_baslat(p2);PERFORM yarenler_duyuru_denetim_sonucu(d,p2,'ret','akademik_degil','Test',NULL,'Test metni','test',NULL,NULL,7);
+ d:=yarenler_duyuru_deneme_baslat(p2);PERFORM yarenler_duyuru_denetim_sonucu(d,p2,'ret','akademik_degil','Test',NULL,'Test metni','test',NULL,NULL,7);
+ blocked:=false;BEGIN PERFORM yarenler_duyuru_deneme_baslat(p2);EXCEPTION WHEN SQLSTATE 'YA023' THEN blocked:=true;END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Third attempt allowed';END IF;
+ -- A rejected revision is consumed for this announcement even after the calendar day changes.
+ UPDATE duyuru_denemesi SET gun=yarenler_bugun()-1 WHERE person_id=p2;
+ d:=yarenler_duyuru_deneme_baslat(p2);
+ INSERT INTO announcement(sahip_id,ham_metin,yayin_metni,sure_hafta,bitis) VALUES(p2,'İkinci akademik proje için işbirliği','İkinci akademik proje için işbirliği',1,now()+interval '1 week') RETURNING id INTO a;
+ PERFORM yarenler_duyuru_denetim_sonucu(d,p2,'kabul',NULL,NULL,a,NULL,'test',NULL,NULL,7);
+ d:=yarenler_duyuru_rezervasyon(p2,a);PERFORM yarenler_duyuru_denetim_sonucu(d,p2,'ret','akademik_degil','Test',NULL,'Test metni','test',NULL,NULL,7);
+ UPDATE duyuru_denemesi SET gun=yarenler_bugun()-1 WHERE person_id=p2;
+ IF yarenler_duyuru_revizyon_acik(p2,a) THEN RAISE EXCEPTION 'Rejected revision reopened next day';END IF;
+ blocked:=false;BEGIN PERFORM yarenler_duyuru_rezervasyon(p2,a);EXCEPTION WHEN SQLSTATE 'YA023' THEN blocked:=true;END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Revision retried on a later day';END IF;
+ PERFORM yarenler_kurum_yukleme_ac(s,repeat('a',64));
+ b:=yarenler_kurum_basvur(s,'Test Üniversitesi','yetkili@example.edu.tr','https://avesis.example.edu.tr/',repeat('a',64),convert_to(repeat('x',150),'UTF8'),repeat('b',64));
+ PERFORM yarenler_kurum_yukleme_ac(s2,repeat('a',64));
+ PERFORM yarenler_kurum_basvur(s2,'Second Test University','second@example.edu.tr','https://avesis.example.edu.tr/',repeat('a',64),convert_to(repeat('x',150),'UTF8'),repeat('c',64));
+ IF (SELECT count(*) FROM kurum_basvurusu WHERE ip_ozeti=repeat('a',64) AND gun=yarenler_bugun())<>2 THEN RAISE EXCEPTION 'Shared university network rejected legitimate second applicant';END IF;
+ blocked:=false;BEGIN PERFORM yarenler_kurum_yukleme_ac(s,repeat('c',64));EXCEPTION WHEN SQLSTATE 'YA033' THEN blocked:=true;END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Same ORCID uploaded twice';END IF;
+ j:=yarenler_kurum_bildirim_al(b);
+ IF j IS NULL OR j->>'id'<>b::text THEN RAISE EXCEPTION 'Notification missing';END IF;
+ IF j<>jsonb_build_object('id',b) THEN RAISE EXCEPTION 'Notification leaked private application fields';END IF;
+ IF yarenler_kurum_bildirim_al(b) IS NOT NULL THEN RAISE EXCEPTION 'Notification double claim';END IF;
+ PERFORM yarenler_kurum_bildirim_sonuc(b,'test-provider-id');
+ IF EXISTS(SELECT 1 FROM yarenler_kurum_bildirim_bekleyen() x WHERE x=b) THEN RAISE EXCEPTION 'Sent notice retried';END IF;
+ IF has_function_privilege('yarenler_auth','yarenler_kurum_bildirim_al(uuid)','EXECUTE') THEN RAISE EXCEPTION 'Auth role can read private queue';END IF;
+ IF has_table_privilege('yarenler_web','kurum_basvurusu','SELECT') OR has_table_privilege('yarenler_auth','kurum_basvurusu','SELECT') THEN RAISE EXCEPTION 'Private PDFs directly readable';END IF;
+ IF has_function_privilege('yarenler_web','yarenler_yayin_ekle(uuid,text,integer,text,text,text)','EXECUTE') THEN RAISE EXCEPTION 'Web role can mutate owner works';END IF;
+END $$;
+-- Exercise the real limited queue consumer, including the privilege required by its row lock.
+SET LOCAL ROLE yarenler_indexer;
+SELECT sahip_turu,sahip_id FROM semantic_refresh_queue ORDER BY olusturma LIMIT 1 FOR UPDATE SKIP LOCKED;
+RESET ROLE;
+ROLLBACK;

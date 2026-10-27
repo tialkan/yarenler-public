@@ -1,0 +1,34 @@
+{
+  "name": "@yarenler/web",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "node --experimental-strip-types --import ./tests/register-ts.mjs --test tests/*.test.mjs",
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:import": "node scripts/import.mjs"
+  },
+  "dependencies": {
+    "d3-force-3d": "3.0.6",
+    "next": "16.4.2",
+    "pdf-lib": "1.17.1",
+    "pg": "8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-force-graph-2d": "^1.29.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "@types/pg": "^8",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.2",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,7 @@
+# Redocly CLI yapılandırması (OpenAPI doğrulama, CI'da çalışır)
+extends:
+  - recommended
+rules:
+  # Yerel sunucu adresi bilinçli olarak tanımlı (sahte sunucu ve geliştirme için)
+  no-server-example.com: error
+  operation-4xx-response: warn

@@ -1,0 +1,179 @@
+# Yarenler CI iskeleti (A0). Dağıtım iş akışları (deploy*) A11'indir.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  openapi:
+    name: OpenAPI doğrulama
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx redocly lint contracts/openapi.yaml
+
+  metin:
+    name: Em dash ve yasaklı ifade testi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: python3 scripts/check_copy.py
+
+  pipeline:
+    name: Veri hattı (uv + pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - run: uv run yarenler --help
+      - name: pytest
+        run: |
+          set +e
+          uv run pytest -q
+          kod=$?
+          # 5: hiç test bulunamadı. İskelet aşamasında başarısızlık sayılmaz, uyarı yazılır.
+          if [ "$kod" -eq 5 ]; then echo "::warning::pipeline/tests altında test bulunamadı"; exit 0; fi
+          exit $kod
+
+      - name: Kaynak güncelleme ve OpenAlex güvenlik sınırları
+        run: uv run --with 'psycopg[binary]==3.2.12' pytest ../infra/maintenance/test_openalex_refresh.py -q
+
+      - name: TR Dizin güncelleme sınırları
+        run: uv run --with 'psycopg[binary]==3.2.12' pytest ../infra/maintenance/test_trdizin_refresh.py -q
+
+      - name: Kurum bildiriminde belge ve iletişim bilgisi sızmaması
+        run: uv run python ../infra/maintenance/test_institution_notices.py
+
+      - name: Ağ kapsam ve değerlendirme ölçümleri
+        run: uv run python ../infra/maintenance/test_network_quality.py
+
+      - name: ORCID bakım kimlik güvenliği
+        run: uv run --with 'psycopg[binary]==3.2.12' python ../infra/maintenance/test_recheck.py
+
+  db:
+    name: Göçler (PostgreSQL 18 + pgvector)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg18
+        env:
+          POSTGRES_USER: yarenler
+          POSTGRES_PASSWORD: yarenler_ci
+          POSTGRES_DB: yarenler_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U yarenler"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # Yalnız CI içindeki geçici veritabanı; sır değildir.
+      DATABASE_URL: postgres://yarenler:yarenler_ci@localhost:5432/yarenler_ci?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --global dbmate@2.36.0
+      - name: Uygulama rollerini geçici CI veritabanında oluştur
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE yarenler_auth NOLOGIN; CREATE ROLE yarenler_web NOLOGIN; CREATE ROLE yarenler_admin NOLOGIN; CREATE ROLE yarenler_indexer NOLOGIN; CREATE ROLE yarenler_maintenance NOLOGIN;"
+      - name: up, rollback, up (tekrar çalıştırılabilirlik)
+        run: |
+          dbmate --migrations-dir db/migrations --no-dump-schema up
+          dbmate --migrations-dir db/migrations --no-dump-schema rollback
+          dbmate --migrations-dir db/migrations --no-dump-schema up
+      - name: İtiraz gizliliği ve insan incelemesi
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/appeals.sql
+      - name: İşbirliği ilgileri eşleştirme bütünlüğü
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/collaboration_interests.sql
+      - name: Kalıcı adresler, İngilizce alan adları ve duyuru kimliği (göç 0011)
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/seo_slugs.sql
+      - name: Kullanıcının eklediği alanlar, günlük sınır ve yarışa dayanıklı ekleme (göç 0012)
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/user_areas.sql
+      - name: Profil yayınları, kaynak tarihi ve içe aktarma kaydı (göç 0013)
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/profile_publications.sql
+      - name: Yönetici paneli işlevleri, kalıcı birleştirme ve kısıtlamalar (göç 0014)
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/admin_panel.sql
+      - name: Duyuru denetimi, günlük hak, ihlal kaydı ve yasaklar (göç 0016)
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/announcement_moderation.sql
+      - name: Yayın sahipliği, tek revizyon ve özel PDF başvurusu
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/owner_workflows.sql
+      - name: İkinci görüş güvenlik ve işbirliği akışları
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/review_hardening.sql
+      - name: Profil yayın kanıtı, ortak yazarlık ve kısıtlı rol PREPARE
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/profile_evidence.sql
+      - name: Günlük duyuru hakkı eşzamanlı isteklerde (göç 0016)
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          TEST_DATABASE_URL="$DATABASE_URL" node --experimental-strip-types --import ./apps/web/tests/register-ts.mjs --test apps/web/tests/announcement-limit-db.test.mjs apps/web/tests/profile-evidence-db.test.mjs apps/web/tests/trdizin-db.test.mjs
+      - name: Türkçe sıralama ve katlama denetimi
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN
+            IF NOT ('Çağrı' > 'Cuma' COLLATE tr_icu) THEN RAISE EXCEPTION 'tr_icu sıralaması hatalı: Ç, C harfinden sonra gelmeli'; END IF;
+            IF lower('I' COLLATE tr_icu) <> 'ı' THEN RAISE EXCEPTION 'tr_icu küçük harf dönüşümü hatalı'; END IF;
+            IF yarenler_katla('Şükrü IŞIK') <> 'sukru isik' THEN RAISE EXCEPTION 'yarenler_katla hatalı'; END IF;
+          END \$\$;"
+
+  workspaces:
+    name: Web ve paketler (tip, lint, test, derleme)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: var
+        name: Çalışma alanı var mı
+        run: |
+          if ls apps/web/package.json packages/*/package.json >/dev/null 2>&1; then
+            echo "var=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Henüz npm çalışma alanı yok (apps/web, packages/*); adımlar atlandı."
+          fi
+      - if: steps.var.outputs.var == '1'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - if: steps.var.outputs.var == '1'
+        run: npm ci
+      - if: steps.var.outputs.var == '1'
+        run: npm run typecheck --workspaces --if-present
+      - if: steps.var.outputs.var == '1'
+        run: npm run lint --workspaces --if-present
+      - if: steps.var.outputs.var == '1'
+        run: npm run test --workspaces --if-present
+      - if: steps.var.outputs.var == '1'
+        run: npm run build --workspaces --if-present
+
+  gitleaks:
+    name: Sır taraması (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.24.0 \
+            git /repo --redact --verbose --exit-code 1

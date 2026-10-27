@@ -1,0 +1,13 @@
+{
+  "name": "@yarenler/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Yarenler tasarım belirteçleri: tokens.json kaynağından CSS değişkenleri ve Swift sabitleri.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "contrast": "node scripts/contrast.mjs",
+    "check": "node scripts/contrast.mjs && node scripts/build.mjs"
+  },
+  "engines": { "node": ">=20" }
+}

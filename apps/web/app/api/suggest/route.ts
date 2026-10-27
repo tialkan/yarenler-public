@@ -1,0 +1,4 @@
+import {NextRequest,NextResponse} from 'next/server';
+import {people,areas} from '@/server/queries';
+import {rankSuggestions,type SuggestItem} from '@/server/suggest-rank';
+export async function GET(request:NextRequest){const q=request.nextUrl.searchParams.get('q')?.trim()||'',lang=request.nextUrl.searchParams.get('lang')==='en'?'en':'tr';if(q.length<3||q.length>120)return NextResponse.json([]);try{const [persons,fields]=await Promise.all([people(q,1,8),areas(q,12)]);const personItems:SuggestItem[]=persons.items.map(p=>({kind:'person',id:p.id,label:p.ad,detail:p.birim?.ad||p.kurum?.ad||'',url:p.yol[lang]}));const fieldItems:SuggestItem[]=fields.map(f=>({kind:'field',id:f.id,label:f.ad_tr||f.ad_en||'',detail:lang==='tr'?'Çalışma alanı':'Research field',url:`/${lang}/${lang==='tr'?'alan':'field'}/${f.slug}`}));return NextResponse.json(rankSuggestions(q,personItems,fieldItems));}catch{return NextResponse.json([]);}}

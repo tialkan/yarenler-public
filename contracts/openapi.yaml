@@ -1,0 +1,677 @@
+# Yarenler API sözleşmesi v0 (0.4 kararlarına göre). Sahibi: A5 (v0'ı A0 yazdı). Değişiklik ADR ile yapılır.
+openapi: 3.1.0
+info:
+  title: Yarenler API
+  version: 0.4.0
+  summary: Yarenler web ve iOS istemcilerinin ortak sözleşmesi (v0)
+  description: |-
+    Plan 0.4 kararlarına göre yeniden yazıldı (ADR 0004).
+
+    Sade profil: kişi yalnız ad, unvan, birim ve çalışma alanlarıyla döner. Ada tıklanınca `avesis_url` açılır. Yayın, biyografi ve yapay zekâ özeti profilde yoktur.
+
+    Görünürlük: tüm okuma uçları herkese açıktır ve indekslenebilir. Yazma uçları oturum ister; kimlik her zaman oturumdan alınır, yolda kişi kimliği yoktur (IDOR yok).
+
+    Giriş yalnız ORCID ile yapılır. Web oturum çerezi (cookieAuth), iOS bearer belirteci (bearerAuth) kullanır.
+
+    Yapay zekâ en az kullanılır: alan araması yalnız veritabanından cevap verir; duyuru güçlendirme yalnız `POST /api/v1/announcements/preview` ile ve maliyet tavanı içinde çalışır.
+
+    Örneklerdeki kişiler kurgusaldır.
+  license:
+    name: Özel, tüm hakları saklıdır
+    identifier: LicenseRef-Proprietary
+  contact:
+    name: Yarenler
+    url: https://yarenler.org
+servers:
+- url: https://yarenler.org
+  description: Üretim. Yerel geliştirme ve sahte sunucu aynı yolları kendi adreslerinde sunar.
+security:
+- {}
+tags:
+- name: Kişiler
+  description: Sade akademisyen profilleri
+- name: Eşleştirme
+  description: Halka ve sıcaklık
+- name: Alanlar
+  description: Merkezi çalışma alanı havuzu
+- name: Hesap
+  description: Giriş yapan hocanın kendi profili
+- name: Duyurular
+  description: Ortak arama duyuruları (en fazla 14 hafta)
+- name: Kimlik
+  description: ORCID ile giriş
+- name: Sistem
+  description: Sağlık denetimi
+paths:
+  /api/v1/people:
+    get:
+      tags: [Kişiler]
+      operationId: listPeople
+      summary: Kişi arama
+      description: Ad ya da çalışma alanına göre arama. Türkçe katlamalı ve trigram benzerliği ile.
+      parameters:
+      - name: q
+        in: query
+        description: Aranan ad ya da alan
+        schema: {type: string, minLength: 1, maxLength: 120}
+        example: kaya
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Kişi listesi
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page, per_page, total]
+                properties:
+                  items: {type: array, items: {$ref: '#/components/schemas/Person'}}
+                  page: {type: integer}
+                  per_page: {type: integer}
+                  total: {type: integer}
+              example:
+                items:
+                - id: k7x2m9
+                  ad: Elif Kaya
+                  unvan: Doç. Dr.
+                  birim: {id: b1, ad: Bilgisayar Mühendisliği}
+                  avesis_url: https://avesis.example.edu.tr/elif.kaya
+                  orcid: 0000-0002-1825-0097
+                  sahiplenildi: true
+                  alanlar:
+                  - {id: a1, ad_tr: Makine öğrenmesi, ad_en: Machine learning, kaynak: avesis}
+                page: 1
+                per_page: 20
+                total: 1
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '429': {$ref: '#/components/responses/TooManyRequests'}
+  /api/v1/people/{id}:
+    get:
+      tags: [Kişiler]
+      operationId: getPerson
+      summary: Kişi profili (sade)
+      parameters:
+      - $ref: '#/components/parameters/PersonId'
+      responses:
+        '200':
+          description: Profil
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Person'}
+              example:
+                id: k7x2m9
+                ad: Elif Kaya
+                unvan: Doç. Dr.
+                birim: {id: b1, ad: Bilgisayar Mühendisliği}
+                avesis_url: https://avesis.example.edu.tr/elif.kaya
+                orcid: 0000-0002-1825-0097
+                sahiplenildi: true
+                alanlar:
+                - {id: a1, ad_tr: Makine öğrenmesi, ad_en: Machine learning, kaynak: avesis}
+                - {id: a2, ad_tr: Tıbbi görüntü işleme, ad_en: Medical image processing, kaynak: kullanici}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/v1/people/{id}/circle:
+    get:
+      tags: [Eşleştirme]
+      operationId: getCircle
+      summary: Halka (potansiyel işbirlikçiler)
+      description: Herkese açık. Kişinin çevresindeki en sıcak eşleşmeler ve gerekçeleri.
+      parameters:
+      - $ref: '#/components/parameters/PersonId'
+      - name: limit
+        in: query
+        schema: {type: integer, minimum: 1, maximum: 60, default: 24}
+      responses:
+        '200':
+          description: Halka
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [merkez, halka]
+                properties:
+                  merkez: {$ref: '#/components/schemas/Person'}
+                  halka:
+                    type: array
+                    items:
+                      type: object
+                      required: [kisi, affinity]
+                      properties:
+                        kisi: {$ref: '#/components/schemas/Person'}
+                        affinity: {$ref: '#/components/schemas/Affinity'}
+                        konum: {$ref: '#/components/schemas/MapPoint'}
+              example:
+                merkez:
+                  id: k7x2m9
+                  ad: Elif Kaya
+                  unvan: Doç. Dr.
+                  birim: {id: b1, ad: Bilgisayar Mühendisliği}
+                  avesis_url: https://avesis.example.edu.tr/elif.kaya
+                  sahiplenildi: true
+                  alanlar: []
+                halka:
+                - kisi:
+                    id: m3p8q1
+                    ad: Murat Demirtaş
+                    unvan: Dr. Öğr. Üyesi
+                    birim: {id: b7, ad: Radyoloji}
+                    avesis_url: https://avesis.example.edu.tr/murat.demirtas
+                    sahiplenildi: false
+                    alanlar:
+                    - {id: a2, ad_tr: Tıbbi görüntü işleme, ad_en: Medical image processing, kaynak: avesis}
+                  affinity:
+                    sicaklik: 82
+                    bant: cok_sicak
+                    bilesenler: {alan: 0.62, yayin: 0.28, birim: 0.10}
+                    gerekceler:
+                    - {tur: ortak_alan, metin: Tıbbi görüntü işleme}
+                    mevcut_isbirligi: false
+                  konum: {x: 0.31, y: -0.12, kume: 4, kume_adi: Sağlıkta yapay zekâ}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/v1/areas:
+    get:
+      tags: [Alanlar]
+      operationId: searchAreas
+      summary: Alan otomatik tamamlama
+      description: Yalnız veritabanından cevap verir (tam, katlamalı, eş anlamlı, trigram). Yapay zekâ çağrılmaz.
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema: {type: string, minLength: 2, maxLength: 120}
+        example: görüntü
+      - name: limit
+        in: query
+        schema: {type: integer, minimum: 1, maximum: 20, default: 10}
+      responses:
+        '200':
+          description: Eşleşen alanlar
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/ResearchArea'}
+              example:
+              - id: a2
+                ad_tr: Tıbbi görüntü işleme
+                ad_en: Medical image processing
+                ust_id: a9
+                sema: openalex
+                es_anlamlilar: [Medikal görüntüleme analizi]
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /api/v1/me/areas:
+    post:
+      tags: [Hesap]
+      operationId: addMyArea
+      summary: Kendi profiline alan ekle
+      description: area_id ya da serbest ad verilir. Serbest ad önce havuzda aranır; karşılık yoksa tek seferlik ucuz model çağrısıyla eşlenir ve sonuç önbelleğe yazılır.
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                area_id: {type: string}
+                ad: {type: string, minLength: 2, maxLength: 120}
+              oneOf:
+              - required: [area_id]
+              - required: [ad]
+            example: {area_id: a2}
+      responses:
+        '201':
+          description: Eklendi
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PersonArea'}
+              example: {id: a2, ad_tr: Tıbbi görüntü işleme, ad_en: Medical image processing, kaynak: kullanici}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /api/v1/me/areas/{areaId}:
+    delete:
+      tags: [Hesap]
+      operationId: removeMyArea
+      summary: Kendi profilinden alan çıkar
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: areaId
+        in: path
+        required: true
+        schema: {type: string}
+      responses:
+        '204': {description: Çıkarıldı}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/v1/me/profile:
+    patch:
+      tags: [Hesap]
+      operationId: updateMyProfile
+      summary: Unvanı güncelle
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [unvan]
+              properties:
+                unvan: {type: string, minLength: 2, maxLength: 60}
+            example: {unvan: Prof. Dr.}
+      responses:
+        '200':
+          description: Güncel profil
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Person'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /api/v1/announcements:
+    get:
+      tags: [Duyurular]
+      operationId: listAnnouncements
+      summary: Yayındaki duyurular
+      parameters:
+      - name: alan
+        in: query
+        description: Alan kimliğine göre süz
+        schema: {type: string}
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Duyuru listesi
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page, per_page, total]
+                properties:
+                  items: {type: array, items: {$ref: '#/components/schemas/Announcement'}}
+                  page: {type: integer}
+                  per_page: {type: integer}
+                  total: {type: integer}
+        '400': {$ref: '#/components/responses/BadRequest'}
+    post:
+      tags: [Duyurular]
+      operationId: createAnnouncement
+      summary: Duyuru yayımla
+      description: Hoca önizlemeyi onayladıktan sonra çağrılır. Yalnız sahiplenilmiş profiller yayımlayabilir.
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AnnouncementCreate'}
+      responses:
+        '201':
+          description: Yayımlandı
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Announcement'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+  /api/v1/announcements/preview:
+    post:
+      tags: [Duyurular]
+      operationId: previewAnnouncement
+      summary: Yapay zekâ ile güçlendirilmiş önizleme
+      description: Ham metni güçlendirir, resmî ve güvenilir kaynak bağlantıları önerir, aranan alanları havuzdan eşler. Kaydetmez. Maliyet tavanı aşılırsa 429 döner.
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ham_metin]
+              properties:
+                ham_metin: {type: string, minLength: 20, maxLength: 5000}
+            example: {ham_metin: "TÜBİTAK 3005 için sosyal bilimlerden ortak arıyorum, konu dijital para politikası ve CBDC."}
+      responses:
+        '200':
+          description: Önizleme
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [yayin_metni, kaynaklar, aranan_alanlar]
+                properties:
+                  yayin_metni: {type: string}
+                  kaynaklar: {type: array, items: {$ref: '#/components/schemas/Source'}}
+                  aranan_alanlar: {type: array, items: {$ref: '#/components/schemas/ResearchArea'}}
+              example:
+                yayin_metni: TÜBİTAK 3005 Sosyal ve Beşeri Bilimlerde Yenilikçi Çözümler programına başvuru için merkez bankası dijital parası (CBDC) üzerine çalışan ortaklar arıyorum.
+                kaynaklar:
+                - {baslik: TÜBİTAK 3005 programı, url: https://tubitak.gov.tr/tr/destekler/akademik/ulusal-destek-programlari/3005}
+                aranan_alanlar:
+                - {id: a40, ad_tr: Para politikası, ad_en: Monetary policy, sema: openalex, es_anlamlilar: []}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '429': {$ref: '#/components/responses/TooManyRequests'}
+  /api/v1/announcements/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema: {type: string}
+    patch:
+      tags: [Duyurular]
+      operationId: updateAnnouncement
+      summary: Duyuruyu güncelle (yalnız sahibi)
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                yayin_metni: {type: string, minLength: 20, maxLength: 8000}
+                kaynaklar: {type: array, items: {$ref: '#/components/schemas/Source'}}
+                aranan_alanlar: {type: array, items: {type: string}}
+                sure_hafta: {type: integer, minimum: 1, maximum: 14}
+                iletisim_goster: {$ref: '#/components/schemas/ContactVisibility'}
+      responses:
+        '200':
+          description: Güncel duyuru
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Announcement'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    delete:
+      tags: [Duyurular]
+      operationId: deleteAnnouncement
+      summary: Duyuruyu kaldır (yalnız sahibi)
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      responses:
+        '204': {description: Kaldırıldı}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/v1/auth/orcid/start:
+    get:
+      tags: [Kimlik]
+      operationId: orcidStart
+      summary: ORCID girişini başlat
+      description: state ve PKCE üretir, ORCID yetkilendirme sayfasına yönlendirir (kapsam /authenticate).
+      parameters:
+      - name: donus
+        in: query
+        description: Girişten sonra dönülecek site içi yol
+        schema: {type: string, pattern: '^/'}
+      responses:
+        '302':
+          description: ORCID'e yönlendirme
+          headers:
+            Location:
+              schema: {type: string, format: uri}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /api/v1/auth/orcid/callback:
+    get:
+      tags: [Kimlik]
+      operationId: orcidCallback
+      summary: ORCID dönüşü
+      description: Kodu belirtece çevirir. ORCID numarası bir profilde kayıtlıysa oturum açılır ve profil sahiplenilir; değilse 403 ve açıklama sayfası.
+      parameters:
+      - {name: code, in: query, required: true, schema: {type: string}}
+      - {name: state, in: query, required: true, schema: {type: string}}
+      responses:
+        '302':
+          description: Oturum açıldı, siteye yönlendirme
+          headers:
+            Set-Cookie:
+              schema: {type: string}
+            Location:
+              schema: {type: string}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+  /api/v1/auth/logout:
+    post:
+      tags: [Kimlik]
+      operationId: logout
+      summary: Oturumu kapat
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      responses:
+        '204': {description: Oturum kapatıldı}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /api/health:
+    get:
+      tags: [Sistem]
+      operationId: health
+      summary: Sağlık denetimi
+      responses:
+        '200':
+          description: Çalışıyor
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [durum]
+                properties:
+                  durum: {type: string, enum: [ok]}
+                  surum: {type: string}
+              example: {durum: ok, surum: 0.4.0}
+        '503':
+          description: Bağımlılık hatası
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: __Host-yarenler_oturum
+      description: Web oturumu. HttpOnly, Secure, SameSite=Lax çerez.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: iOS istemcisi için kısa ömürlü belirteç.
+  parameters:
+    PersonId:
+      name: id
+      in: path
+      required: true
+      description: Kişinin kalıcı kısa kimliği
+      schema: {type: string, pattern: '^[0-9a-z]{4,12}$'}
+      example: k7x2m9
+    Page:
+      name: page
+      in: query
+      schema: {type: integer, minimum: 1, default: 1}
+    PerPage:
+      name: per_page
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+  responses:
+    BadRequest:
+      description: Geçersiz istek
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example: {kod: gecersiz_istek, mesaj: q parametresi en az 2 karakter olmalı}
+    Unauthorized:
+      description: Oturum gerekli
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example: {kod: oturum_gerekli, mesaj: Bu işlem için ORCID ile giriş yapın}
+    Forbidden:
+      description: Yetki yok
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example: {kod: yetki_yok, mesaj: Bu duyuru size ait değil}
+    NotFound:
+      description: Bulunamadı
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example: {kod: bulunamadi, mesaj: Kayıt bulunamadı}
+    TooManyRequests:
+      description: Hız ya da maliyet sınırı
+      headers:
+        Retry-After:
+          schema: {type: integer}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example: {kod: sinir_asildi, mesaj: Lütfen biraz sonra tekrar deneyin}
+  schemas:
+    Error:
+      type: object
+      required: [kod, mesaj]
+      properties:
+        kod: {type: string, description: ASCII hata kodu}
+        mesaj: {type: string}
+        ayrinti: {type: object, additionalProperties: true}
+    UnitRef:
+      type: object
+      required: [id, ad]
+      properties:
+        id: {type: string}
+        ad: {type: string}
+        ad_en: {type: [string, 'null'], description: Kaynakta İngilizce ad varsa.}
+        slug: {type: string, description: 'Kalıcı birim adresi, /tr/birim/{slug} (göç 0011).'}
+    ResearchArea:
+      type: object
+      required: [id, sema]
+      properties:
+        id: {type: string}
+        ad_tr: {type: [string, 'null']}
+        ad_en: {type: [string, 'null']}
+        ust_id: {type: [string, 'null']}
+        sema: {type: string, enum: [openalex, avesis, wos, scopus, yarenler]}
+        slug: {type: [string, 'null'], description: 'Kalıcı alan adresi, /tr/alan/{slug}; yalnız kanonik alanda (göç 0011).'}
+        es_anlamlilar: {type: array, items: {type: string}}
+    PersonArea:
+      type: object
+      required: [id, kaynak]
+      properties:
+        id: {type: string}
+        ad_tr: {type: [string, 'null']}
+        ad_en: {type: [string, 'null']}
+        kaynak: {type: string, enum: [avesis, kullanici, oneri]}
+    Person:
+      type: object
+      description: Sade profil (0.4 madde 1).
+      required: [id, ad, alanlar, sahiplenildi]
+      properties:
+        id: {type: string}
+        ad: {type: string}
+        unvan: {type: [string, 'null']}
+        birim: {oneOf: [{$ref: '#/components/schemas/UnitRef'}, {type: 'null'}]}
+        avesis_url: {type: [string, 'null'], format: uri}
+        orcid: {type: [string, 'null'], pattern: '^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$'}
+        sahiplenildi: {type: boolean}
+        yol: {$ref: '#/components/schemas/LocalizedPath'}
+        alanlar: {type: array, items: {$ref: '#/components/schemas/PersonArea'}}
+        interests:
+          type: array
+          description: Profil sahibinin ortak çalışmak istediği alanlar; uzmanlık kaydı değildir, eşleştirmede aynı ağırlıktadır.
+          items: {$ref: '#/components/schemas/ResearchArea'}
+        revision: {type: string, description: "Profilin son güncelleme zamanı, paylaşım kartı önbellek sürümü."}
+    Affinity:
+      type: object
+      required: [sicaklik, bant, bilesenler, gerekceler, mevcut_isbirligi]
+      properties:
+        sicaklik: {type: number, minimum: 0, maximum: 100}
+        bant: {type: string, enum: [cok_sicak, sicak, ilik, serin]}
+        bilesenler:
+          type: object
+          additionalProperties: {type: number}
+        gerekceler:
+          type: array
+          items:
+            type: object
+            required: [tur, metin]
+            properties:
+              tur: {type: string, enum: [ortak_alan, ortak_konu, tamamlayici_alan, ortak_birim]}
+              metin: {type: string}
+        mevcut_isbirligi: {type: boolean}
+        ortak_yayin: {type: integer, minimum: 0, description: "Görünür kayıtlardaki ortak yayın sayısı"}
+        zayif_eslesme: {type: boolean, description: "Kanıtlı yedek öneri; güçlü alan yakınlığı bandı kullanılmaz"}
+    MapPoint:
+      type: object
+      required: [x, y]
+      properties:
+        x: {type: number}
+        y: {type: number}
+        kume: {type: [integer, 'null']}
+        kume_adi: {type: [string, 'null']}
+    Source:
+      type: object
+      required: [baslik, url]
+      properties:
+        baslik: {type: string, maxLength: 200}
+        url: {type: string, format: uri, pattern: '^https://'}
+    ContactVisibility:
+      type: object
+      required: [eposta, telefon]
+      properties:
+        eposta: {type: boolean, default: false}
+        telefon: {type: boolean, default: false}
+    AnnouncementCreate:
+      type: object
+      required: [ham_metin, yayin_metni, aranan_alanlar, sure_hafta, iletisim_goster]
+      properties:
+        ham_metin: {type: string, minLength: 20, maxLength: 5000}
+        yayin_metni: {type: string, minLength: 20, maxLength: 8000}
+        kaynaklar: {type: array, items: {$ref: '#/components/schemas/Source'}, maxItems: 10}
+        aranan_alanlar: {type: array, items: {type: string}, maxItems: 10, description: Alan kimlikleri}
+        sure_hafta: {type: integer, minimum: 1, maximum: 14}
+        iletisim_goster: {$ref: '#/components/schemas/ContactVisibility'}
+    Announcement:
+      type: object
+      required: [id, ham_metin, yayin_metni, kaynaklar, aranan_alanlar, sure_hafta, bitis, iletisim_goster, sahip]
+      properties:
+        id: {type: string}
+        kisa_kimlik: {type: string, pattern: '^[0-9a-z]{6,12}$', description: 'Kalıcı duyuru adresinin kimliği, /tr/duyuru/{kisa_kimlik}-{slug} (göç 0011).'}
+        ham_metin: {type: string}
+        yayin_metni: {type: string}
+        kaynaklar: {type: array, items: {$ref: '#/components/schemas/Source'}}
+        aranan_alanlar: {type: array, items: {$ref: '#/components/schemas/ResearchArea'}}
+        sure_hafta: {type: integer, minimum: 1, maximum: 14}
+        yayin_tarihi: {type: string, format: date-time}
+        bitis: {type: string, format: date-time}
+        iletisim_goster: {$ref: '#/components/schemas/ContactVisibility'}
+        iletisim:
+          type: object
+          description: Yalnız sahibinin göstermeyi seçtiği bilgiler bulunur.
+          properties:
+            eposta: {type: string, format: email}
+            telefon: {type: string}
+        sahip: {$ref: '#/components/schemas/Person'}
+        yol: {$ref: '#/components/schemas/LocalizedPath'}
+    LocalizedPath:
+      type: object
+      description: Site içi adresler (ADR 0003, 0004). İstemciler adresi kendileri üretmez.
+      required: [tr, en]
+      properties:
+        tr: {type: string, example: /tr/a/k7x2m9-elif-kaya}
+        en: {type: string, example: /en/a/k7x2m9-elif-kaya}

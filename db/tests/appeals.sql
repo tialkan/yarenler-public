@@ -1,0 +1,31 @@
+BEGIN;
+DO $$
+DECLARE i uuid:=uuidv7();p uuid:=uuidv7();p2 uuid:=uuidv7();s uuid:=uuidv7();s2 uuid:=uuidv7();v uuid;appeal uuid;j jsonb;blocked boolean;
+BEGIN
+ INSERT INTO institution(id,kisa_ad,ad,ulke) VALUES(i,'ci-appeal','Test','TR');
+ INSERT INTO person(id,kisa_kimlik,institution_id,ad,soyad,gorunen_ad) VALUES(p,'ciappeal1',i,'A','B','A B'),(p2,'ciappeal2',i,'C','D','C D');
+ INSERT INTO orcid_session(id,person_id,orcid,gorunen_ad,belirtec_ozeti,bitis) VALUES(s,p,'0000-0000-0000-1100','A B',decode('0102','hex'),now()+interval '1 day'),(s2,p2,'0000-0000-0000-108X','C D',decode('0304','hex'),now()+interval '1 day');
+ INSERT INTO icerik_ihlali(person_id,karar,kategori,gerekce,metin,ip) VALUES(p,'ret','akademik_degil','Reason','Original text','198.51.100.1') RETURNING id INTO v;
+ blocked:=false;BEGIN PERFORM yarenler_itiraz_ac(s2,v,'duyuru',repeat('x',30));EXCEPTION WHEN SQLSTATE 'YA031' THEN blocked:=true;END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Someone else appealed a private decision';END IF;
+ appeal:=yarenler_itiraz_ac(s,v,'duyuru',repeat('x',30));
+ j:=yarenler_itirazlarim(s2);IF jsonb_array_length(j->'itirazlar')<>0 OR jsonb_array_length(j->'kararlar')<>0 THEN RAISE EXCEPTION 'Private records leaked';END IF;
+ j:=yarenler_itirazlarim(s);IF jsonb_array_length(j->'itirazlar')<>1 OR (j->'kararlar'->0)?'ip' THEN RAISE EXCEPTION 'Missing appeal or leaked IP';END IF;
+ blocked:=false;BEGIN PERFORM yarenler_itiraz_ac(s,v,'duyuru',repeat('y',30));EXCEPTION WHEN SQLSTATE 'YA032' THEN blocked:=true;END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Duplicate open appeal';END IF;
+ PERFORM yarenler_itiraz_sonuclandir(appeal,'kabul','İnceleme tamamlandı ve düzeltildi.');
+ blocked:=false;BEGIN PERFORM yarenler_itiraz_sonuclandir(appeal,'ret','İkinci karar uygulanmamalı.');EXCEPTION WHEN SQLSTATE 'YA034' THEN blocked:=true;END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Resolved appeal modified';END IF;
+ DELETE FROM icerik_ihlali WHERE id=v;
+ IF NOT EXISTS(SELECT 1 FROM itiraz WHERE id=appeal AND durum='kabul') THEN RAISE EXCEPTION 'Cleanup destroyed appeal';END IF;
+ PERFORM yarenler_itiraz_ac(s,NULL,'profil',repeat('z',30));
+ PERFORM yarenler_itiraz_ac(s,NULL,'alan',repeat('z',30));
+ blocked:=false;BEGIN PERFORM yarenler_itiraz_ac(s,NULL,'duyuru',repeat('z',30));EXCEPTION WHEN SQLSTATE 'YA033' THEN blocked:=true;END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Daily rate bypass';END IF;
+ UPDATE itiraz SET sonuclanma=now()-interval '181 days' WHERE id=appeal;
+ IF yarenler_itiraz_temizle()<>1 THEN RAISE EXCEPTION 'Retention failed';END IF;
+ UPDATE orcid_session SET bitis=now()-interval '1 day' WHERE id=s;
+ blocked:=false;BEGIN PERFORM yarenler_itiraz_ac(s,NULL,'duyuru',repeat('z',30));EXCEPTION WHEN SQLSTATE 'YA030' THEN blocked:=true;END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Expired session accepted';END IF;
+END $$;
+ROLLBACK;

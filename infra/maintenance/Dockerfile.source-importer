@@ -1,0 +1,11 @@
+FROM node:24-bookworm-slim
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package*.json ./
+COPY apps/web/package.json apps/web/package.json
+COPY packages/design-tokens/package.json packages/design-tokens/package.json
+RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+COPY apps/web/scripts/import.mjs apps/web/scripts/publication-plan.mjs apps/web/scripts/publication-source-sql.mjs ./apps/web/scripts/
+COPY apps/web/src/server/text-case.ts ./apps/web/src/server/text-case.ts
+RUN node --check apps/web/scripts/import.mjs && node --check apps/web/scripts/publication-source-sql.mjs
+ENTRYPOINT ["node"]

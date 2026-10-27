@@ -1,0 +1,151 @@
+/* Yarenler tasarım belirteçleri v0.1.0. Bu dosya üretilir, elle düzenlemeyin. Kaynak: tokens.json */
+:root {
+  color-scheme: light dark;
+  --yr-color-bg: #FAF5EC; /* Sayfa zemini. Kâğıt hissi veren sıcak krem. */
+  --yr-color-surface: #FFFCF6; /* Kart, sekme çubuğu, giriş kutusu yüzeyi. */
+  --yr-color-surface-2: #F2EADC; /* İkinci düzey yüzey: seçili görünüm, monogram zemini. */
+  --yr-color-text: #2B211A; /* Ana metin rengi. */
+  --yr-color-text-muted: #66574A; /* İkincil metin: birim adı, veri günü, açıklama. Metin için AA geçer. */
+  --yr-color-border: #E2D6C4; /* Ayraç çizgisi. Yalnız süsleyici ayrım içindir, bilgi taşımaz. */
+  --yr-color-line: #8C7A68; /* Bilgi taşıyan çizgi: halka izi, düğüm çerçevesi, ikincil düğme kenarı. Zemine karşı en az 3:1. */
+  --yr-color-accent: #B03F1C; /* Tek vurgu rengi (kiremit kor). Birincil düğme, bağlantı, etkin sekme. */
+  --yr-color-accent-hover: #933313; /* Vurgu, üzerine gelme ve basılı hali. */
+  --yr-color-on-accent: #FFFFFF; /* Vurgu zemini üstündeki metin. */
+  --yr-color-focus: #2B211A; /* Odak halkası rengi. 3 px, 2 px boşlukla çizilir. */
+  --yr-color-heat-ilik: #F4D6BC; /* Ilık bant dolgusu (45-64). Dış halka. */
+  --yr-color-heat-on-ilik: #2B211A; /* Ilık bant üstündeki metin. */
+  --yr-color-heat-sicak: #E48A5E; /* Sıcak bant dolgusu (65-84). Orta halka. */
+  --yr-color-heat-on-sicak: #2B211A; /* Sıcak bant üstündeki metin. */
+  --yr-color-heat-kor: #B03F1C; /* Kor bant dolgusu (85-100). İç halka. */
+  --yr-color-heat-on-kor: #FFFFFF; /* Kor bant üstündeki metin. */
+  --yr-heat-band-kor-min: 85; /* Kor alt sınırı. */
+  --yr-heat-band-kor-max: 100;
+  --yr-heat-band-sicak-min: 65; /* Sıcak alt sınırı. */
+  --yr-heat-band-sicak-max: 84;
+  --yr-heat-band-ilik-min: 45; /* Ilık alt sınırı. */
+  --yr-heat-band-ilik-max: 64;
+  --yr-font-family-serif: Fraunces, Georgia, serif; /* Başlık ailesi. iOS büyük başlıklarda da kullanılır. */
+  --yr-font-family-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; /* Metin ailesi. iOS metinde sistem fontu ve Dynamic Type kullanır. */
+  --yr-font-family-mono: ui-monospace, 'SF Mono', Menlo, monospace; /* Kod ve kimlik gösterimi. */
+  --yr-font-weight-regular: 400;
+  --yr-font-weight-medium: 500;
+  --yr-font-weight-semibold: 600; /* Başlık ve vurgu ağırlığı. */
+  --yr-font-size-xs: 12px; /* Etiket, veri günü. */
+  --yr-font-size-sm: 14px; /* Yardımcı metin. */
+  --yr-font-size-md: 16px; /* Gövde metni, mobil. */
+  --yr-font-size-lg: 18px; /* Gövde metni, masaüstü; giriş kutusu. */
+  --yr-font-size-xl: 22px; /* Alt başlık. */
+  --yr-font-size-2xl: 28px; /* Bölüm başlığı, büyük sayı. */
+  --yr-font-size-3xl: 38px; /* Ekran başlığı, mobil. */
+  --yr-font-size-4xl: 52px; /* Ekran başlığı, masaüstü. */
+  --yr-font-size-5xl: 72px; /* Ana sayfa manşeti, masaüstü. */
+  --yr-font-line-height-tight: 1.05; /* Büyük serif başlık. */
+  --yr-font-line-height-snug: 1.25;
+  --yr-font-line-height-body: 1.55; /* Gövde metni. */
+  --yr-font-letter-spacing-display: -0.02em; /* Büyük başlıkta hafif sıkılaştırma. */
+  --yr-font-letter-spacing-label: 0.08em; /* Büyük harfli küçük etiket. */
+  --yr-space-0: 0px;
+  --yr-space-1: 4px;
+  --yr-space-2: 8px;
+  --yr-space-3: 12px;
+  --yr-space-4: 16px; /* Mobil yan boşluk. */
+  --yr-space-5: 20px;
+  --yr-space-6: 24px;
+  --yr-space-8: 32px;
+  --yr-space-10: 40px;
+  --yr-space-12: 48px;
+  --yr-space-16: 64px;
+  --yr-space-20: 80px; /* Bölümler arası, masaüstü. */
+  --yr-size-touch-target: 44px; /* En küçük dokunma hedefi (WCAG ve Apple HIG). */
+  --yr-size-input-height: 56px; /* Ana arama kutusu yüksekliği. */
+  --yr-size-focus-ring: 3px; /* Odak halkası kalınlığı. */
+  --yr-size-focus-offset: 2px; /* Odak halkası boşluğu. */
+  --yr-radius-none: 0px;
+  --yr-radius-sm: 8px; /* Rozet kutusu, görünüm geçişi. */
+  --yr-radius-md: 12px; /* Düğme, arama kutusu, kart. */
+  --yr-radius-lg: 20px; /* Alt sayfa, büyük panel. */
+  --yr-radius-full: 999px; /* Çip, monogram, bant etiketi. */
+  --yr-shadow-raised: 0px 1px 2px 0px #2B211A1F; /* Kart, açılır menü. */
+  --yr-shadow-overlay: 0px 8px 24px -4px #2B211A29; /* Alt sayfa, iletişim kutusu. */
+  --yr-motion-duration-instant: 80ms; /* Basılı geri bildirimi. */
+  --yr-motion-duration-fast: 140ms; /* Üzerine gelme, odak. */
+  --yr-motion-duration-base: 220ms; /* Tema, sekme, çip geçişi. */
+  --yr-motion-duration-slow: 360ms; /* Liste ile Halka arası geçiş. */
+  --yr-motion-duration-ring: 700ms; /* Halkanın dışa doğru açılması. */
+  --yr-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1); /* Genel geçiş. */
+  --yr-motion-easing-out: cubic-bezier(0.2, 0.7, 0.2, 1); /* Halka açılması: hızlı başlar, yumuşak durur. */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --yr-color-bg: #1B1612;
+    --yr-color-surface: #251E19;
+    --yr-color-surface-2: #30271F;
+    --yr-color-text: #F2E9DD;
+    --yr-color-text-muted: #BBA995;
+    --yr-color-border: #3E342B;
+    --yr-color-line: #8E7C6B;
+    --yr-color-accent: #F08A5D;
+    --yr-color-accent-hover: #F6A47F;
+    --yr-color-on-accent: #1B1612;
+    --yr-color-focus: #F2E9DD;
+    --yr-color-heat-ilik: #4B3528;
+    --yr-color-heat-on-ilik: #F2E9DD;
+    --yr-color-heat-sicak: #9E4C2B;
+    --yr-color-heat-on-sicak: #F7EEE4;
+    --yr-color-heat-kor: #F08A5D;
+    --yr-color-heat-on-kor: #1B1612;
+  }
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --yr-color-bg: #1B1612;
+  --yr-color-surface: #251E19;
+  --yr-color-surface-2: #30271F;
+  --yr-color-text: #F2E9DD;
+  --yr-color-text-muted: #BBA995;
+  --yr-color-border: #3E342B;
+  --yr-color-line: #8E7C6B;
+  --yr-color-accent: #F08A5D;
+  --yr-color-accent-hover: #F6A47F;
+  --yr-color-on-accent: #1B1612;
+  --yr-color-focus: #F2E9DD;
+  --yr-color-heat-ilik: #4B3528;
+  --yr-color-heat-on-ilik: #F2E9DD;
+  --yr-color-heat-sicak: #9E4C2B;
+  --yr-color-heat-on-sicak: #F7EEE4;
+  --yr-color-heat-kor: #F08A5D;
+  --yr-color-heat-on-kor: #1B1612;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --yr-color-bg: #FAF5EC;
+  --yr-color-surface: #FFFCF6;
+  --yr-color-surface-2: #F2EADC;
+  --yr-color-text: #2B211A;
+  --yr-color-text-muted: #66574A;
+  --yr-color-border: #E2D6C4;
+  --yr-color-line: #8C7A68;
+  --yr-color-accent: #B03F1C;
+  --yr-color-accent-hover: #933313;
+  --yr-color-on-accent: #FFFFFF;
+  --yr-color-focus: #2B211A;
+  --yr-color-heat-ilik: #F4D6BC;
+  --yr-color-heat-on-ilik: #2B211A;
+  --yr-color-heat-sicak: #E48A5E;
+  --yr-color-heat-on-sicak: #2B211A;
+  --yr-color-heat-kor: #B03F1C;
+  --yr-color-heat-on-kor: #FFFFFF;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --yr-motion-duration-instant: 0ms;
+    --yr-motion-duration-fast: 0ms;
+    --yr-motion-duration-base: 0ms;
+    --yr-motion-duration-slow: 0ms;
+    --yr-motion-duration-ring: 0ms;
+  }
+}

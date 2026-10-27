@@ -1,0 +1,22 @@
+'use client';
+import Link from 'next/link';
+import {useRef} from 'react';
+import {AnnouncementInterest} from './announcement-interest';
+import {AnnouncementEditor} from './announcement-editor';
+import {useSession} from './session-state';
+export type StripItem={id:string;text:string;name:string;path:string;url:string;remaining:string;ends:string;sources:{id:string;label:string;url:string}[]};
+type Props={lang:'tr'|'en';items:StripItem[];anchor:string};
+function firstLine(text:string){return text.split(/\r?\n/).map(s=>s.trim()).find(Boolean)||'';}
+function AnnouncementDialog({item,lang}:{item:StripItem;lang:'tr'|'en'}){const dialog=useRef<HTMLDialogElement>(null),opener=useRef<HTMLElement|null>(null);/* Native modal dialog: focus moves inside, Escape closes, focus returns to the opener. */const open=(event:React.MouseEvent<HTMLElement>)=>{opener.current=event.currentTarget;dialog.current?.showModal();},close=()=>dialog.current?.close(),restore=()=>opener.current?.focus();const en=lang==='en',local=en?item.path.replace('/tr/','/en/'):item.path,titleId='ann-title-'+item.id;
+ return <li className="ann-card"><button type="button" className="ann-open" aria-haspopup="dialog" onClick={open}>{firstLine(item.text)}</button><p className="ann-meta"><Link href={local}>{item.name}</Link><span aria-hidden="true"> · </span><span>{item.remaining}</span><span aria-hidden="true"> · </span><Link href={item.url}>{en?'Permalink':'Kalıcı bağlantı'}</Link></p>
+  <dialog ref={dialog} className="ann-dialog" aria-labelledby={titleId} onClose={restore} onClick={e=>{if(e.target===e.currentTarget)close();}}><div className="ann-dialog-body"><div className="ann-dialog-head"><h2 id={titleId}><Link href={local}>{item.name}</Link></h2><button type="button" className="ann-close" onClick={close} aria-label={en?'Close':'Kapat'}>×</button></div><p className="ann-text">{item.text}</p><AnnouncementInterest id={item.id} lang={lang}/><p className="ann-meta"><time dateTime={item.ends}>{item.remaining}</time><span aria-hidden="true"> · </span><Link href={item.url}>{en?'Announcement page':'Duyuru sayfası'}</Link></p>{item.sources.length>0&&<section className="ann-sources"><h3>{en?'Sources':'Kaynaklar'}</h3><ul>{item.sources.map(s=><li key={s.id}><a href={s.url} target="_blank" rel="noopener noreferrer">{s.label} ↗</a></li>)}</ul></section>}</div></dialog></li>;}
+export function PublishDialog({lang,compact}:{lang:'tr'|'en';compact:boolean}){const dialog=useRef<HTMLDialogElement>(null),opener=useRef<HTMLElement|null>(null);/* Native modal dialog: focus moves inside, Escape closes, focus returns to the opener. */const open=(event:React.MouseEvent<HTMLElement>)=>{opener.current=event.currentTarget;dialog.current?.showModal();},close=()=>dialog.current?.close(),restore=()=>opener.current?.focus();const en=lang==='en';
+ return <><button type="button" className={compact?'ann-publish ann-publish-compact':'ann-publish'} aria-haspopup="dialog" onClick={open}>{en?'+ Publish an announcement':'+ Duyuru yayımla'}</button><dialog ref={dialog} className="ann-dialog" aria-labelledby="ann-publish-title" onClose={restore}><div className="ann-dialog-body"><div className="ann-dialog-head"><h2 id="ann-publish-title">{en?'Collaboration announcement':'İşbirliği duyurusu'}</h2><button type="button" className="ann-close" onClick={close} aria-label={en?'Close':'Kapat'}>×</button></div><AnnouncementEditor lang={lang}/></div></dialog></>;}
+/** Home page strip. The publish button depends on the visitor, so it is decided in the browser (useSession). */
+export function AnnouncementStrip({lang,items,anchor}:Props){const en=lang==='en',{canPublish}=useSession();
+ if(!items.length)return canPublish?<div className="ann-cta"><PublishDialog lang={lang} compact/></div>:null;
+ return <section className="ann-strip" id={anchor} aria-labelledby="ann-strip-title"><h2 id="ann-strip-title" className="ann-strip-title">{en?'Announcements':'Duyurular'}</h2><ul className="ann-list">{items.map(item=><AnnouncementDialog key={item.id} item={item} lang={lang}/>)}{canPublish&&<li className="ann-card ann-card-publish"><PublishDialog lang={lang} compact={false}/></li>}</ul></section>;
+}
+
+/** Publish button for the announcement list page; shown only to a signed-in profile owner. */
+export function PublishCta({lang}:{lang:'tr'|'en'}){const {canPublish}=useSession();return canPublish?<div className="ann-cta"><PublishDialog lang={lang} compact/></div>:null;}

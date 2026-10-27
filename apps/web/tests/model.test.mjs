@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {slug,personPath,score,positiveInt} from '../src/server/model.ts';
+test('Türkçe adlar URL içinde katlanır, kalıcı kimlik korunur',()=>{assert.equal(slug('Şükrü IŞIK'),'sukru-isik');assert.equal(personPath('k7x2m9','Örnek Araştırmacı'),'/tr/a/k7x2m9-ornek-arastirmaci');});
+test('Jaccard sıfır, tam eşleşme ve simetrik payda',()=>{assert.equal(score(0,0,0),0);assert.equal(score(3,3,3),100);assert.equal(score(2,3,5),33);assert.equal(score(2,5,3),33);});
+test('Sayfalama ondalık, negatif, sonsuz ve taşan değerleri reddeder',()=>{for(const value of ['0','-1','1.5','NaN','9999999999999999999','21'])assert.throws(()=>positiveInt(value,10,20));assert.equal(positiveInt(null,10,20),10);assert.equal(positiveInt('20',10,20),20);});
+import {remainingLabel} from '../src/server/model.ts';
+test('announcement remaining time',()=>{const now=new Date('2026-10-23T12:00:00Z');
+ assert.equal(remainingLabel('2026-11-13T12:00:00Z','tr',now),'3 hafta kaldı');
+ assert.equal(remainingLabel('2026-11-13T12:00:00Z','en',now),'3 weeks left');
+ assert.equal(remainingLabel('2026-10-28T12:00:00Z','tr',now),'5 gün kaldı');
+ assert.equal(remainingLabel('2026-10-23T20:00:00Z','tr',now),'Son gün');});

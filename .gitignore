@@ -1,0 +1,56 @@
+# Veri ve raporlar (depoya girmez, plan 9.3)
+data/
+
+# Sırlar ve ortam dosyaları
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.mobileprovision
+
+# Node
+node_modules/
+.next/
+.next-dev/
+out/
+dist/
+!packages/design-tokens/dist/
+build/
+coverage/
+.turbo/
+*.tsbuildinfo
+npm-debug.log*
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Xcode ve iOS
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+*.ipa
+*.dSYM.zip
+*.dSYM/
+apps/ios/*.xcodeproj/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# İşletim sistemi ve editör
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
