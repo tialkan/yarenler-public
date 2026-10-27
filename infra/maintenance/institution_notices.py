@@ -14,7 +14,7 @@ def main():
         for (identity,) in c.execute('SELECT * FROM yarenler_kurum_bildirim_bekleyen()').fetchall():
             item=c.execute('SELECT yarenler_kurum_bildirim_al(%s)',(identity,)).fetchone()[0]
             if not item:continue
-            body={'from':sender,'to':['contact@example.invalid'],'subject':'Yarenler: yeni kurumsal katılım başvurusu','text':f"Yeni bir kurumsal katılım başvurusu alındı.\nBaşvuru: {identity}\n\nBelgeleri yalnız yönetici oturumunuzla özel panelden inceleyebilirsiniz:\nhttps://yarenler.org/yonetici/kurumlar\n\nBu e-posta belge eki veya başvuranın iletişim bilgilerini içermez."}
+            body={'from':sender,'to':['tialkan@aybu.edu.tr'],'subject':'Yarenler: yeni kurumsal katılım başvurusu','text':f"Yeni bir kurumsal katılım başvurusu alındı.\nBaşvuru: {identity}\n\nBelgeleri yalnız yönetici oturumunuzla özel panelden inceleyebilirsiniz:\nhttps://yarenler.org/yonetici/kurumlar\n\nBu e-posta belge eki veya başvuranın iletişim bilgilerini içermez."}
             mail=None
             try:
                 req=urllib.request.Request('https://api.resend.com/emails',data=json.dumps(body).encode(),headers={'Authorization':'Bearer '+key,'Content-Type':'application/json','User-Agent':'Yarenler-Notifications/1.0 (+https://yarenler.org)','Idempotency-Key':'kurum-'+str(identity)},method='POST')

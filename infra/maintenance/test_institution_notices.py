@@ -34,7 +34,7 @@ class Notifications(unittest.TestCase):
         def send(req,**kw):
             body=json.loads(req.data)
             self.assertEqual(set(body),{'from','to','subject','text'})
-            self.assertEqual(body['to'],['contact@example.invalid'])
+            self.assertEqual(body['to'],['tialkan@aybu.edu.tr'])
             self.assertIn('https://yarenler.org/yonetici/kurumlar',body['text'])
             self.assertIn('test-application-id',body['text'])
             self.assertNotIn('PRIVATE-',req.data.decode())

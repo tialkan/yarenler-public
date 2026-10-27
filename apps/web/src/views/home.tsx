@@ -15,7 +15,7 @@ import {UniversityNetwork} from '@/components/university-network';
 import {SiteShell} from '@/components/site-shell';
 import {Search} from './shared';
 export function homeMetadata(lang:Lang):Metadata{
- return pageMetadata({lang,title:lang==='tr'?'Akademik yarenini bul.':'Find your research partner.',description:lang==='tr'?'AYBÜ araştırmacılarını ve çalışma alanlarını keşfedin. Açıklanabilir alan yakınlığıyla akademik işbirlikleri ve proje ortakları bulun.':'Discover AYBU researchers and research fields. Find academic collaborators with explainable field similarity.',pair:{tr:'/tr',en:'/en'},indexable:{tr:true,en:true},ogAlt:'Yarenler · Akademik yarenini bul.'});
+ return pageMetadata({lang,title:lang==='tr'?'Akademik yarenini bul.':'Find your research partner.',description:lang==='tr'?'Araştırmacıları ve çalışma alanlarını keşfedin. Açıklanabilir alan yakınlığıyla akademik işbirlikleri ve proje ortakları bulun.':'Discover researchers and research fields. Find academic collaborators with explainable field similarity.',pair:{tr:'/tr',en:'/en'},indexable:{tr:true,en:true},ogAlt:'Yarenler · Akademik yarenini bul.'});
 }
 const HOW={tr:[['Ara','Bir isim ya da çalışma alanı yaz.'],['Gör','Ağda en yakın araştırmacılar ve ortak alanlarınız açılır.'],['Bağlan','Profilden AVESİS sayfasına geç ya da işbirliği duyurusu yayımla.']],en:[['Search','Type a name or a research field.'],['See','The network shows the closest researchers and the fields you share.'],['Connect','Open the AVESİS page from a profile or publish a collaboration announcement.']]};
 /**

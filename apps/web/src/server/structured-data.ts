@@ -16,7 +16,7 @@ export function compact<T extends Json>(value:T):T{
 export function jsonLd(data:Json){return JSON.stringify(compact(data)).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');}
 export const ids=(base:string)=>({organization:`${base}/#organization`,website:`${base}/#website`});
 /** Root Organization: the Yarenler project itself (not the university). */
-export function organization(base:string){return {'@type':'Organization','@id':ids(base).organization,name:'Yarenler',url:`${base}/tr`,logo:{'@type':'ImageObject',url:`${base}/icon-512.png`,width:512,height:512},founder:{'@type':'Person',name:'Örnek Araştırmacı',url:'https://avesis.example.invalid/researcher'}};}
+export function organization(base:string){return {'@type':'Organization','@id':ids(base).organization,name:'Yarenler',url:`${base}/tr`,logo:{'@type':'ImageObject',url:`${base}/icon-512.png`,width:512,height:512},founder:{'@type':'Person',name:'Tarık İsmet Alkan',url:'https://avesis.aybu.edu.tr/tialkan'}};}
 /** WebSite without SearchAction (Google no longer shows the sitelinks search box). */
 export function website(base:string){return {'@type':'WebSite','@id':ids(base).website,name:'Yarenler',url:`${base}/tr`,inLanguage:['tr','en'],publisher:{'@id':ids(base).organization}};}
 export type Crumb={name:string;url:string};

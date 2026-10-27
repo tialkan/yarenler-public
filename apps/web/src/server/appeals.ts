@@ -17,7 +17,7 @@ export async function submitAppeal(_state:ActionState,form:FormData):Promise<Act
  }catch(error){
   unstable_rethrow(error);
   const code=(error as {code?:string}).code;
-  const messages:Record<string,[string,string]>={YA030:['Oturumunuzu yenileyin.','Please sign in again.'],YA031:['Başvuru bilgilerini kontrol edin.','Please check the appeal details.'],YA032:['Bu konuda açık başvurunuz var; aşağıdan izleyebilirsiniz.','You already have an open appeal on this subject.'],YA033:['Bugünkü başvuru sınırına ulaştınız. Acil taleplerinizi contact@example.invalid adresine iletebilirsiniz.','Daily submission limit reached. For urgent requests, contact contact@example.invalid.']};
+  const messages:Record<string,[string,string]>={YA030:['Oturumunuzu yenileyin.','Please sign in again.'],YA031:['Başvuru bilgilerini kontrol edin.','Please check the appeal details.'],YA032:['Bu konuda açık başvurunuz var; aşağıdan izleyebilirsiniz.','You already have an open appeal on this subject.'],YA033:['Bugünkü başvuru sınırına ulaştınız. Acil taleplerinizi tialkan@aybu.edu.tr adresine iletebilirsiniz.','Daily submission limit reached. For urgent requests, contact tialkan@aybu.edu.tr.']};
   if(code&&messages[code])return {error:messages[code][lang==='tr'?0:1]};
   return {error:actionErrorMessage(error,lang,{action:'appeal_submit'})};
  }

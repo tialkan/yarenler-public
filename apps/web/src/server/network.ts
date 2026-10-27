@@ -52,10 +52,16 @@ export async function announcementInsights(text:string,excludeId:string|null){
 export async function skillMatches(ids:string[],excludeId:string|null){const data=await corpus();const keys=[...new Set(ids)];return data.people.filter(p=>p.id!==excludeId).map(p=>{const found=keys.filter(k=>p.labels.has(k)&&p.fields.includes(data.display.get(k)||''));return {p,found,weight:found.reduce((n,k)=>n+(data.weights.get(k)||0),0)};}).filter(x=>x.found.length).sort((a,b)=>b.found.length-a.found.length||b.weight-a.weight||pairTieBreak(excludeId||'skill',a.p.id)-pairTieBreak(excludeId||'skill',b.p.id)).slice(0,8).map(({p,found})=>({id:p.id,name:p.name,unit:p.unit,url:p.url,reasons:found.map(k=>({field:data.display.get(k)!,term:data.display.get(k)!}))}));}
 
 let scopeCache:{at:number;items:Map<string,{id:string;name:string;level:number}[]>}|null=null;
+let scopePending:Promise<Map<string,{id:string;name:string;level:number}[]>>|null=null;
 const profileCache=new Map<string,{at:number;matches:ProfileSuggestion[];common:Map<string,number>}>();
 async function profileScopes(){if(scopeCache&&Date.now()-scopeCache.at<300000)return scopeCache.items;
- const {rows}=await db().query<{id:string;area_id:string;name:string;level:number}>(PROFILE_SCOPE_SQL),items=new Map<string,{id:string;name:string;level:number}[]>();
- for(const r of rows){if(!items.has(r.id))items.set(r.id,[]);items.get(r.id)!.push({id:r.area_id,name:headingCase(r.name)||r.name,level:r.level});}scopeCache={at:Date.now(),items};return items;
+ if(scopePending)return scopePending;
+ scopePending=(async()=>{const items=new Map<string,{id:string;name:string;level:number}[]>();
+  try{const {rows}=await db().query<{id:string;area_id:string;name:string;level:number}>(PROFILE_SCOPE_SQL);
+   for(const r of rows){if(!items.has(r.id))items.set(r.id,[]);items.get(r.id)!.push({id:r.area_id,name:headingCase(r.name)||r.name,level:r.level});}}
+  catch(error){console.error('Profil üst alanları geçici olarak kullanılamıyor:',(error as {code?:string}).code||'query_error');}
+  scopeCache={at:Date.now(),items};return items;
+ })();try{return await scopePending;}finally{scopePending=null;}
 }
 /** Profile discovery is distinct from the four-edge visual graph; no fabricated weak graph edges. */
 export async function profileRecommendations(id:string){const prior=profileCache.get(id);if(prior&&Date.now()-prior.at<300000)return prior;

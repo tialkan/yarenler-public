@@ -128,7 +128,7 @@ jobs:
       - name: Günlük duyuru hakkı eşzamanlı isteklerde (göç 0016)
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
-          TEST_DATABASE_URL="$DATABASE_URL" node --experimental-strip-types --import ./apps/web/tests/register-ts.mjs --test apps/web/tests/announcement-limit-db.test.mjs apps/web/tests/profile-evidence-db.test.mjs apps/web/tests/trdizin-db.test.mjs
+          TEST_DATABASE_URL="$DATABASE_URL" node --experimental-strip-types --import ./apps/web/tests/register-ts.mjs --test apps/web/tests/announcement-limit-db.test.mjs apps/web/tests/profile-evidence-db.test.mjs apps/web/tests/trdizin-db.test.mjs apps/web/tests/registration-access.test.mjs apps/web/tests/publication-lookup.test.mjs
       - name: Türkçe sıralama ve katlama denetimi
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN

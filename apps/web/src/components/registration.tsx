@@ -1,24 +1,20 @@
 import Link from 'next/link';
 import {FieldPicker} from './field-picker';
+import {InstitutionPicker} from './institution-picker';
 import type {RegistrationDraft} from '@/server/registration-sources';
 import {ActionForm,SubmitButton,type FormAction} from './action-form';
 type Action=FormAction;
 const errors={kvkk:['Devam etmek için aydınlatma metnini onaylaman gerekiyor.','Please confirm the privacy notice to continue.'],kurum:['Bir kurum seç ya da kurumunu yaz.','Choose an institution or type yours.'],name:['ORCID kaydından ad okunamadı. ORCID’de adının görünür olduğunu kontrol et.','No name could be read from ORCID. Check that your name is visible on ORCID.']} as const;
 
 /** First ORCID sign-in without a profile: name from ORCID, institution from ORCID employment, fields from OpenAlex. */
-export function RegistrationForm({action,lang,draft,catalog,error}:{action:Action;lang:'tr'|'en';draft:RegistrationDraft;catalog:{id:string;ad:string}[];error:string|null}){const tr=lang==='tr';const message=error&&error in errors?errors[error as keyof typeof errors][tr?0:1]:null;const hasEmployment=draft.employments.length>0;
+export function RegistrationForm({action,lang,draft,catalog,error}:{action:Action;lang:'tr'|'en';draft:RegistrationDraft;catalog:{id:string;ad:string}[];error:string|null}){const tr=lang==='tr';const message=error&&error in errors?errors[error as keyof typeof errors][tr?0:1]:null;
  return <ActionForm action={action} className="registration-form"><input type="hidden" name="lang" value={lang}/>
   <h2>{tr?'Yarenler profilini aç':'Create your Yarenler profile'}</h2>
   <p>{tr?'Bu ORCID kimliğine bağlı bir profil yok. Aşağıdaki bilgilerle araştırmacı profili açabilirsin.':'No profile is linked to this ORCID iD. You can create a researcher profile with the details below.'}</p>
   {message&&<p role="alert">{message}</p>}
   <p className="profile-input">{tr?'Ad (ORCID kaydından)':'Name (from ORCID)'}<strong>{draft.name?.display||'-'}</strong></p>
   <label className="profile-input">{tr?'Unvan (isteğe bağlı)':'Title (optional)'}<input name="title" maxLength={120} placeholder={tr?'Örn. Doç. Dr.':'e.g. Associate Professor'}/></label>
-  <fieldset className="institution-picker"><legend>{tr?'Kurum':'Institution'}</legend>
-   {hasEmployment?<p className="source-note">{tr?'ORCID’deki aktif görev kaydından ve ROR/OpenAlex kurum listesinden:':'From your active ORCID employment and the ROR/OpenAlex institution list:'}</p>:<p className="source-note">{tr?'ORCID kaydında aktif görev bilgisi yok. Kurumunu kendin yaz.':'Your ORCID record has no active employment. Please type your institution.'}</p>}
-   {draft.choices.map((c,i)=><label key={c.key}><input type="radio" name="institution" value={c.key} defaultChecked={i===0} required={!hasEmployment?undefined:true}/>{c.name}{c.country&&<> · {c.country}</>}{c.detail&&<small> ({c.detail})</small>}<small> · {c.ror?'ROR':c.origin==='openalex'?'OpenAlex':'ORCID'}</small></label>)}
-   {draft.choices.length>0&&<label><input type="radio" name="institution" value="__beyan"/>{tr?'Listede yok, kendim yazacağım':'Not listed, I will type it'}</label>}
-   <label className="profile-input">{tr?'Kurum adı':'Institution name'}<input name="kurum_beyan" maxLength={200} required={draft.choices.length===0}/></label>
-  </fieldset>
+  <InstitutionPicker choices={draft.choices} lang={lang}/>
   <FieldPicker fields={catalog} initial={draft.suggestions.map(s=>s.id).filter(id=>catalog.some(c=>c.id===id))} lang={lang}/>
   <p className="source-note">{draft.suggestions.length?(tr?'Öneriler OpenAlex’te ORCID iD’ne bağlı yayınlarının konularından alan havuzuyla eşleştirildi. İstemediklerini çıkar, eksikleri ekle.':'Suggestions match the topics of your OpenAlex publications (found by ORCID iD) to the field catalog. Remove or add fields as you like.'):(tr?'OpenAlex’te ORCID iD’ne bağlı yayın konusu bulunamadı. Alanlarını havuzdan ekleyebilirsin.':'No OpenAlex publication topics were found for your ORCID iD. Add fields from the catalog.')}</p>
   <section className="consent"><h3>{tr?'Aydınlatma':'Privacy notice'}</h3><p>{tr?'Herkese görünecek alanlar: ad, unvan (girersen), kurum, çalışma alanları ve ORCID bağlantın. Profilin ağda, aramada ve eşleştirmede yer alır. Onay zamanı ve metin sürümü saklanır. Profilini istediğin zaman Profilim sayfasından kaldırabilirsin.':'Publicly visible: name, title (if given), institution, research fields and your ORCID link. Your profile appears in the network, search and matching. The consent time and notice version are stored. You can remove your profile at any time from My profile.'} <Link href={tr?'/tr/gizlilik':'/en/privacy'}>{tr?'Gizlilik ve kişisel veriler':'Privacy and personal data'}</Link></p>

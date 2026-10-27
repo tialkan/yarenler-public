@@ -1,4 +1,4 @@
-Contact: https://avesis.example.invalid/researcher
+Contact: https://avesis.aybu.edu.tr/tialkan
 Expires: 2027-10-22T21:00:00Z
 Preferred-Languages: tr, en
 Canonical: https://yarenler.org/.well-known/security.txt

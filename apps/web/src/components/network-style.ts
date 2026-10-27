@@ -8,5 +8,5 @@ export type Edge={source:string;target:string;score:number};
 export function degrees(nodeIds:string[],links:Edge[]){const result=new Map<string,number>(nodeIds.map(id=>[id,0]));for(const edge of links){result.set(edge.source,(result.get(edge.source)||0)+1);result.set(edge.target,(result.get(edge.target)||0)+1);}return result;}
 /** Line width grows with the field-similarity score so closer matches read as stronger. */
 export function linkWidth(score:number,touchesSelection:boolean,selectionActive:boolean){if(touchesSelection)return .6+Math.max(0,Math.min(100,score))/100*3.4;return selectionActive?.25:.3+Math.max(0,Math.min(100,score))/100*.6;}
-/** Unconnected people stay findable but recede in the overview; selection always reveals them. */
-export function nodeAlpha({selected,isSelected,isNeighbour,degree}:{selected:boolean;isSelected:boolean;isNeighbour:boolean;degree:number}){if(isSelected||isNeighbour)return 'ee';if(selected)return '16';return degree>0?'cc':'2e';}
+/** Keep unconnected researchers visible in the full network. */
+export function nodeAlpha({selected,isSelected,isNeighbour,degree}:{selected:boolean;isSelected:boolean;isNeighbour:boolean;degree:number}){if(isSelected||isNeighbour)return 'ee';if(selected)return '16';return degree>0?'cc':'88';}

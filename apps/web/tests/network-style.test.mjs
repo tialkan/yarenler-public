@@ -8,7 +8,7 @@ test('faculty tones derive from the brand colour and stay in one blue family',()
 });
 test('isolated people recede by default and reappear when selected',()=>{
  const d=degrees(['a','b','c'],[{source:'a',target:'b',score:40}]);assert.equal(d.get('c'),0);assert.equal(d.get('a'),1);
- assert.equal(nodeAlpha({selected:false,isSelected:false,isNeighbour:false,degree:0}),'2e');
+ assert.equal(nodeAlpha({selected:false,isSelected:false,isNeighbour:false,degree:0}),'88');
  assert.equal(nodeAlpha({selected:true,isSelected:true,isNeighbour:false,degree:0}),'ee');
  assert.equal(nodeAlpha({selected:true,isSelected:false,isNeighbour:false,degree:5}),'16');
 });
