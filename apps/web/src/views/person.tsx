@@ -30,10 +30,11 @@ export async function personMetadata(lang:Lang,param:string):Promise<Metadata>{
 export async function PersonView({lang,param}:{lang:Lang;param:string}){
  const t=copy[lang],p=paths[lang],other:Lang=lang==='tr'?'en':'tr';
  const found=await load(param);if(!found)notFound();if(`/${lang}/a/${param}`!==found.yol[lang])permanentRedirect(found.yol[lang]);
- const id=found.id,[circle,pubs]=await Promise.all([ring(id),personPublications(id).catch(()=>null)]),base=baseUrl(),url=base+found.yol[lang],unit=unitName(found,lang),en=lang==='en';
+ const id=found.id,base=baseUrl(),url=base+found.yol[lang],unit=unitName(found,lang),en=lang==='en';
  const interests=distinctAreas(found.interests||[]),interestNames=new Set(interests.flatMap(a=>[a.ad_tr,a.ad_en].filter(Boolean).map(n=>n!.normalize('NFKC').toLocaleLowerCase('tr').trim())));
  const fields=distinctAreas(found.alanlar).filter(a=>!interests.some(i=>i.id===a.id)&&![a.ad_tr,a.ad_en].filter(Boolean).some(n=>interestNames.has(n!.normalize('NFKC').toLocaleLowerCase('tr').trim())));
- const fingerprint=await personFieldEvidence(id,fields,pubs?groupCounts(pubs.counts,lang).total:0);
+ const pubsPromise=personPublications(id).catch(()=>null);
+ const [circle,pubs,fingerprint]=await Promise.all([ring(id),pubsPromise,personFieldEvidence(id,fields,pubsPromise.then(data=>data?groupCounts(data.counts,lang).total:0))]);
  const institution=found.kurum?{name:institutionName(found,lang)!,ror:found.kurum.ror,university:!found.kurum.aybu_disi||/üniversite|university|universit/i.test(found.kurum.ad)}:null;
  const structured=jsonLd(profilePage({base,url,lang,name:found.ad,jobTitle:displayTitle(found.unvan,lang),institution,unit,knowsAbout:[...fields.map(a=>areaName(a,lang)),...(pubs?.topics||[]).map(a=>areaName(a,lang))],publicationCount:pubs?groupCounts(pubs.counts,lang).total:0,works:pubs?workNodes(pubs.recent,url+'#person'):[],sameAs:[found.avesis_url,found.orcid?'https://orcid.org/'+found.orcid:null],dateModified:found.revision?new Date(found.revision).toISOString():null,crumbs:[{name:'Yarenler',url:`${base}/${lang}`},{name:t.explore,url:`${base}/${lang}/${p.explore}`},{name:found.ad,url}]}));
  const tagLang=(a:{ad_en:string|null})=>en&&!a.ad_en?'tr':undefined;

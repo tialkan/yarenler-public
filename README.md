@@ -2,7 +2,7 @@
 
 Yarenler, araştırmacıların çalışma alanlarına göre potansiyel akademik işbirliklerini keşfetmesine yardımcı olan web uygulamasıdır. Bu depo uygulamanın kaynak kodunu ve sürekli bütünleştirme kontrollerini içerir.
 
-Uygulama Next.js, PostgreSQL ve Python veri hattından oluşur. TR Dizin, OpenAlex ve AVESİS erişimi ilgili kaynakların güncel kullanım koşullarına ve bağımsız yapılandırmaya bağlıdır. Depoda gerçek üretim verisi, erişim anahtarları, özel operasyon belgeleri ve gerçek kişi test örnekleri bulunması amaçlanmaz. Bazı özel kaynak örneklerine bağımlı testler bu sürümde çıkarılmış, yerlerine küçük kurgusal testler konmuştur.
+Uygulama Next.js, PostgreSQL ve Python veri hattından oluşur. TR Dizin, OpenAlex ve AVESİS erişimi ilgili kaynakların güncel kullanım koşullarına ve bağımsız yapılandırmaya bağlıdır. Depoda gerçek üretim verisi, erişim anahtarları, özel operasyon belgeleri ve gerçek kişi test örnekleri bulunması amaçlanmaz. Kaynak tarama, ayrıştırma, güvenlik ve yayın işleme testleri kurgusal profil, kurum ve yayın örnekleri kullanır.
 
 ## Yerel geliştirme
 

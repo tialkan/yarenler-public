@@ -1,5 +1,5 @@
-export const FIELD_EVIDENCE_SQL=`WITH k AS (SELECT id FROM person WHERE kisa_kimlik=$1::text AND aktif),
- evidence AS (SELECT e.area_id,e.publication_id,min(e.basis) basis FROM person_field_publication e JOIN k ON k.id=e.person_id GROUP BY e.area_id,e.publication_id),
+export const FIELD_EVIDENCE_SQL=`WITH k AS MATERIALIZED (SELECT id FROM person WHERE kisa_kimlik=$1::text AND aktif),
+ evidence AS (SELECT e.area_id,e.publication_id,min(e.basis) basis FROM k CROSS JOIN LATERAL (SELECT area_id,publication_id,basis FROM person_field_publication WHERE person_id=k.id OFFSET 0) e GROUP BY e.area_id,e.publication_id),
  ranked AS (SELECT e.area_id,e.basis,w.id,w.baslik,w.yil,w.doi,w.openalex_id,w.avesis_url,(SELECT min(t.source_id) FROM trdizin_publication t WHERE t.publication_id=w.id) trdizin_id,
   row_number() OVER(PARTITION BY e.area_id ORDER BY w.yil DESC NULLS LAST,w.baslik,w.id) n,
   count(*) OVER(PARTITION BY e.area_id)::int supported FROM evidence e JOIN publication w ON w.id=e.publication_id)
